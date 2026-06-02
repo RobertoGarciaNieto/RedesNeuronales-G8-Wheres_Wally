@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Evitar subir imágenes pesadas de Wally (Requisito TP)
+data/raw/
+data/processed/
+*.jpg
+*.jpeg
+*.png
