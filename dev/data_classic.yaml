@@ -1,0 +1,11 @@
+path: /kaggle/input/datasets/mohaneddz/wheres-waldo
+train: processed/train/images
+val: processed/val/images
+test: processed/test/images
+nc: 5
+names:
+  0: Odlaw
+  1: Waldo
+  2: Wilma
+  3: Wizard
+  4: woof
