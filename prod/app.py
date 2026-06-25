@@ -45,7 +45,7 @@ CLASS_EMOJI = {
     "wizard": "🔵", "woof": "🟠",
 }
 MAX_DISPLAY_WIDTH = 1350
-NMS_IOU_THRESHOLD = 0.35
+NMS_IOU_THRESHOLD = 0.20
 ZOOM_HEIGHT = 650
 
 # ─────────────────────────────────────────────
