@@ -502,17 +502,36 @@ def main():
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-        # 🚀 CANVAS PROFESIONAL (Procesamiento corregido)
-        canvas_result = st_canvas(
-            fill_color="rgba(230, 57, 70, 0.15)",
-            stroke_width=3,
-            stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=img_canvas_bg,
-            update_streamlit=True,
-            height=cdh, width=cdw,
-            drawing_mode="rect",
-            key=f"canvas_juego_{nivel}",
-        )
+       # --- 4. ZONA CENTRAL: LIENZO Y EVALUACIÓN ---
+        if uploaded_file:
+            img_pil = Image.open(uploaded_file).convert("RGB")
+            iw, ih = img_pil.size
+            
+            # Redimensionamos para que no colapse el navegador (Ancho máx 1000px)
+            factor = iw / 1000 if iw > 1000 else 1.0
+            dw, dh = int(iw / factor), int(ih / factor)
+            img_display = img_pil.resize((dw, dh), Image.LANCZOS)
+        
+            # CONVERSIÓN A BASE64 PARA STREAMLIT CLOUD
+            buffered = io.BytesIO()
+            img_display.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+            data_url = f"data:image/png;base64,{img_str}"
+        
+            st.subheader("🖍️ Lienzo de Juego")
+            
+            # Canvas configurado con la imagen en Base64
+            canvas_result = st_canvas(
+                fill_color="rgba(230, 57, 70, 0.2)",
+                stroke_width=3,
+                stroke_color=color_pincel,
+                background_image=None,  # Ponemos None porque usaremos initial_drawing
+                initial_drawing={"version": "4.4.0", "objects": [], "background": data_url},
+                height=dh,
+                width=dw,
+                drawing_mode="rect",
+                key="canvas"
+            )
 
         if canvas_result.json_data is not None:
             objects = canvas_result.json_data["objects"]
