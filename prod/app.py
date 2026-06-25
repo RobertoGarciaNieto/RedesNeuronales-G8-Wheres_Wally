@@ -82,6 +82,11 @@ canvas.upper-canvas, canvas.lower-canvas {
     max-width: 100% !important;
     width: 100% !important;
 }
+/* Maximizar el contenedor de bloques de Streamlit para el Canvas */
+[data-testid="stVerticalBlock"] > div:has(canvas) {
+    width: 100% !important;
+    max-width: 100% !important;
+}
 </style>
 """)
 
@@ -482,13 +487,12 @@ def main():
         img_pil = Image.open(io.BytesIO(st.session_state.imagen_bytes)).convert("RGB")
         iw, ih = img_pil.size
 
-        # En Streamlit Cloud el canvas falla con imágenes grandes.
-        # Usamos un ancho reducido SOLO para el canvas (800px max).
-        MAX_CANVAS_WIDTH = 800
+        # Escalado adaptado: Aumentamos a 1400px para maximizar el ancho del lienzo
+        MAX_CANVAS_WIDTH = 1400
         factor = iw / MAX_CANVAS_WIDTH if iw > MAX_CANVAS_WIDTH else 1.0
         dw, dh = int(iw / factor), int(ih / factor)
 
-        # Imagen para la lupa (puede ser más grande)
+        # Imagen para la lupa calculada con su respectiva resolución HD
         factor_zoom = iw / MAX_DISPLAY_WIDTH if iw > MAX_DISPLAY_WIDTH else 1.0
         dw_zoom, dh_zoom = int(iw / factor_zoom), int(ih / factor_zoom)
         img_zoom = img_pil.resize((dw_zoom, dh_zoom), Image.LANCZOS)
@@ -496,13 +500,12 @@ def main():
 
         img_display_base = img_pil.resize((dw, dh), Image.LANCZOS)
 
-        # FIX: Pasamos explícitamente dw_zoom y dh_zoom para que el script calcule bien los arrastres de alta definición
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw_zoom, dh_zoom)
 
         # 🚀 CANVAS PROFESIONAL (Estructura de Fabric.js corregida para producción)
         buf_canvas = io.BytesIO()
-        img_pil.resize((dw, dh), Image.LANCZOS).save(buf_canvas, format="JPEG", quality=82)
+        img_pil.resize((dw, dh), Image.LANCZOS).save(buf_canvas, format="JPEG", quality=85)
         b64_canvas = base64.b64encode(buf_canvas.getvalue()).decode()
         data_url = f"data:image/jpeg;base64,{b64_canvas}"
 
