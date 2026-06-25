@@ -488,29 +488,35 @@ def main():
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-# 🚀 CANVAS PROFESIONAL (Bypass definitivo de CORS para Producción)
-        # 1. Convertimos la imagen reescalada a Base64 crudo
+# 🚀 CANVAS PROFESIONAL (Solución por Capas - Bypass Absoluto de CORS)
+        # 1. Convertimos la imagen base a Base64
         b64_canvas = pil_b64(img_display_base)
         data_url_bg = f"data:image/jpeg;base64,{b64_canvas}"
 
-        # 2. Creamos un objeto "simulado" que engañe a la librería en Python
-        # pero que devuelva el string Data URL al frontend en JavaScript.
-        class SafeCanvasBackground:
-            def __init__(self, url, w, h):
-                self.url = url
-                self.width = w
-                self.height = h
-            def __str__(self):
-                return self.url
+        # 2. Inyectamos un contenedor CSS que ponga la imagen de fondo JUSTO detrás del canvas estático.
+        # De esta manera, el canvas queda transparente arriba para que arrastres el mouse sin romper nada.
+        st.markdown(
+            f"""
+            <style>
+            /* Buscamos el contenedor exacto del canvas de este nivel y le inyectamos el fondo */
+            div[data-testid="stCustomComponentV1"] iframe {{
+                background-image: url('{data_url_bg}') !important;
+                background-size: contain !important;
+                background-repeat: no-repeat !important;
+                background-position: center !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
 
-        bg_seguro = SafeCanvasBackground(data_url_bg, dw, dh)
-
-        # 3. Inicializamos el Canvas con nuestro objeto seguro
+        # 3. Inicializamos el Canvas pasándole `None` en la imagen de fondo.
+        # Como no hay objeto imagen, la librería salta sus validaciones conflictivas y no tira errores.
         canvas_result = st_canvas(
             fill_color="rgba(230, 57, 70, 0.15)",
             stroke_width=3,
             stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=bg_seguro,  # <--- Inyectamos el proxy Base64 con dimensiones
+            background_image=None,  # <--- Dejamos el canvas transparente limpio
             update_streamlit=True,
             height=dh, width=dw,
             drawing_mode="rect",
