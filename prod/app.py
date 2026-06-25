@@ -7,6 +7,7 @@ import base64
 import io
 import math
 import json
+import os
 from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
@@ -45,7 +46,7 @@ CLASS_EMOJI = {
     "wizard": "🔵", "woof": "🟠",
 }
 MAX_DISPLAY_WIDTH = 1350
-NMS_IOU_THRESHOLD = 0.35
+NMS_IOU_THRESHOLD = 0.15
 ZOOM_HEIGHT = 650
 
 # ─────────────────────────────────────────────
@@ -323,8 +324,8 @@ let sc=1,px=0,py=0,dr=false,x0=0,y0=0,px0=0,py0=0;
 const im=new Image(); im.src='data:image/jpeg;base64,{img_b64}';
 im.onload=()=>{{c.width=OW;c.height=OH;ctx.drawImage(im,0,0,OW,OH);fitImg();}};
 function fitImg() {{const cw=w.clientWidth;sc=Math.min(cw/OW,CH/OH);px=(cw-OW*sc)/2;py=(CH-OH*sc)/2;ap();}}
-function ap(){{c.style.transform=`translate(${{px}}px,${{py}}px) scale(${{sc}})`;ind.textContent=sc.toFixed(1)+'×';}}
-function cl(){{const cw=w.clientWidth,iw=OW*sc,ih=OH*sc;px=iw<=cw?(cw-iw)/2:Math.min(0,Math.max(px,cw-iw));py=ih<=CH?(CH-ih)/2:Math.min(0,Math.max(py,CH-ih));}}
+function ap()){{c.style.transform=`translate(${{px}}px,${{py}}px) scale(${{sc}})`;ind.textContent=sc.toFixed(1)+'×';}}
+function cl()){{const cw=w.clientWidth,iw=OW*sc,ih=OH*sc;px=iw<=cw?(cw-iw)/2:Math.min(0,Math.max(px,cw-iw));py=ih<=CH?(CH-ih)/2:Math.min(0,Math.max(py,CH-ih));}}
 function zm(d,cx,cy){{cx=cx??w.clientWidth/2;cy=cy??CH/2;const ns=Math.min(8,Math.max(0.5,sc+d)),r=ns/sc;px=cx-r*(cx-px);py=cy-r*(cy-py);sc=ns;cl();ap();}}
 function reset(){{fitImg();}}
 w.addEventListener('wheel',e=>{{e.preventDefault();const r=w.getBoundingClientRect();zm(e.deltaY<0?.25:-.25,e.clientX-r.left,e.clientY-r.top);}},{{passive:false}});
@@ -412,7 +413,7 @@ def main():
                 <h3 style="color:#e63946; font-family:Bangers; font-size:1.8rem;">🎯 JUGAR CONTRA LA IA</h3>
                 <p style="color:#c9d1d9; font-family:Nunito;">Compite en tiempo real arrastrando el mouse para dibujar recuadros.</p>
                 <ul style="color:#c9d1d9; font-family:'Nunito'; font-size:.92rem; line-height:1.7; padding-left:18px; margin-bottom:0;">
-                    <li>Elegís uno de 3 pósters fijos (Fácil, Medio, Difícil) de nuestro dataset de test.</li>
+                    <li>Elegís uno de 4 pósters fijos (Fácil, Medio, Difícil o Super Difícil) de nuestro dataset de test.</li>
                     <li>Vos dibujás recuadros sobre el póster marcando dónde creés que está cada personaje.</li>
                     <li>En paralelo, la IA analiza el mismo póster con su propio modelo.</li>
                     <li>Ambos resultados se comparan contra las coordenadas <i>reales</i> del dataset (ground truth).</li>
@@ -437,7 +438,7 @@ def main():
     elif st.session_state.page == "Jugar":
         # ── Personajes a Buscar ──
         CHARS_ORDEN = ["waldo", "wilma", "odlaw", "wizard", "woof"]
-        st.markdown("<h3 style='font-family:Bangers;color:#e63946;font-size:2.3rem;text-align:center;letter-spacing:2px;margin-bottom:16px;'>🎭 PERSONAJES A BUSCAR</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-family:Bangers;color:#e63946;font-size:2.3rem;text-align:center;letter-spacing:2px;margin-bottom:16px;'>🎯 PERSONAJES A BUSCAR</h3>", unsafe_allow_html=True)
         cols_chars = st.columns(5)
         for col, nombre in zip(cols_chars, CHARS_ORDEN):
             img_path = SCRIPT_DIR / "personajesABuscar" / f"{nombre}.jpg"
@@ -454,13 +455,12 @@ def main():
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<h2 style='font-family:Bangers;color:#e63946;font-size:2.3rem;'>🎯 Seleccioná el nivel y marcá los personajes</h2>", unsafe_allow_html=True)
-        nivel = st.selectbox("Elegí la dificultad:", ["Fácil", "Medio", "Difícil", "Extra"])
+        nivel = st.selectbox("Elegí la dificultad:", ["Fácil", "Medio", "Difícil", "Super Dificil"])
         archivo_nombre = {
             "Fácil": "facil.jpg",
             "Medio": "medio.jpg",
             "Difícil": "dificil.jpg",
-            "Extra": "superDificil.webp",
+            "Super Dificil": "superDificil.webp",
         }.get(nivel, "facil.jpg")
         path_poster = SCRIPT_DIR / "posters_fijos" / archivo_nombre
 
@@ -486,22 +486,25 @@ def main():
         img_display_base = img_pil.resize((dw, dh), Image.LANCZOS)
         b64 = pil_b64(img_display_base)
 
-        # Streamlit Cloud tiene límite de payload para background_image del canvas.
-        # Comprimimos la imagen a JPEG 85% para reducir el tamaño sin pérdida visible.
-        buf_canvas = io.BytesIO()
-        img_display_base.save(buf_canvas, format="JPEG", quality=85, optimize=True)
-        buf_canvas.seek(0)
-        img_canvas_bg = Image.open(buf_canvas)
-
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-       # 🚀 CANVAS PROFESIONAL (Procesamiento corregido)
+        # 🚀 CANVAS PROFESIONAL (Solución Definitiva usando Servidor Estático de Streamlit)
+        # Guardamos la imagen temporalmente en el sistema de archivos local de la app
+        # para que Streamlit pueda exponerla como una URL estática legítima consumible por el iframe.
+        static_dir = SCRIPT_DIR / "static_tmp"
+        static_dir.mkdir(exist_ok=True)
+        temp_img_path = static_dir / f"canvas_bg_{nivel}.jpg"
+        img_display_base.save(temp_img_path, format="JPEG")
+
+        # Exponemos la carpeta temporal al frontend de Streamlit para eludir CORS de manera interna
+        bg_url = f"app/static/canvas_bg_{nivel}.jpg"
+
         canvas_result = st_canvas(
             fill_color="rgba(230, 57, 70, 0.15)",
             stroke_width=3,
             stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=img_canvas_bg,
+            background_image=img_display_base,
             update_streamlit=True,
             height=dh, width=dw,
             drawing_mode="rect",
@@ -630,7 +633,7 @@ def main():
 
             # ── Grilla de personajes ──
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<div style='font-family:Bangers;color:#c9d1d9;font-size:1.3rem;margin-bottom:12px;letter-spacing:1px;'>📋 DETALLE POR PERSONAJE</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-family:Bangers;color:#e63946;font-size:1.3rem;text-align:center;margin-bottom:12px;letter-spacing:1px;'>📋 DETALLE POR PERSONAJE</div>", unsafe_allow_html=True)
 
             for ru, ri in zip(res_usuario, res_ia):
                 personaje = ru["personaje"]
