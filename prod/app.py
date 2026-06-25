@@ -294,7 +294,8 @@ def pil_b64(img, fmt="JPEG"):
     return base64.b64encode(buf.getvalue()).decode()
 
 def render_zoom_viewer(img_b64, dw, dh):
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+    # Definimos el documento HTML plano (corrigiendo los paréntesis de las funciones de JS)
+    html_content = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
 body{{background:transparent;overflow:hidden;}}
@@ -323,8 +324,8 @@ let sc=1,px=0,py=0,dr=false,x0=0,y0=0,px0=0,py0=0;
 const im=new Image(); im.src='data:image/jpeg;base64,{img_b64}';
 im.onload=()=>{{c.width=OW;c.height=OH;ctx.drawImage(im,0,0,OW,OH);fitImg();}};
 function fitImg() {{const cw=w.clientWidth;sc=Math.min(cw/OW,CH/OH);px=(cw-OW*sc)/2;py=(CH-OH*sc)/2;ap();}}
-function ap(){{c.style.transform=`translate(${{px}}px,${{py}}px) scale(${{sc}})`;ind.textContent=sc.toFixed(1)+'×';}}
-function cl(){{const cw=w.clientWidth,iw=OW*sc,ih=OH*sc;px=iw<=cw?(cw-iw)/2:Math.min(0,Math.max(px,cw-iw));py=ih<=CH?(CH-ih)/2:Math.min(0,Math.max(py,CH-ih));}}
+function ap() {{c.style.transform=`translate(${{px}}px,${{py}}px) scale(${{sc}})`;ind.textContent=sc.toFixed(1)+'×';}}
+function cl() {{const cw=w.clientWidth,iw=OW*sc,ih=OH*sc;px=iw<=cw?(cw-iw)/2:Math.min(0,Math.max(px,cw-iw));py=ih<=CH?(CH-ih)/2:Math.min(0,Math.max(py,CH-ih));}}
 function zm(d,cx,cy){{cx=cx??w.clientWidth/2;cy=cy??CH/2;const ns=Math.min(8,Math.max(0.5,sc+d)),r=ns/sc;px=cx-r*(cx-px);py=cy-r*(cy-py);sc=ns;cl();ap();}}
 function reset(){{fitImg();}}
 w.addEventListener('wheel',e=>{{e.preventDefault();const r=w.getBoundingClientRect();zm(e.deltaY<0?.25:-.25,e.clientX-r.left,e.clientY-r.top);}},{{passive:false}});
@@ -332,7 +333,13 @@ w.addEventListener('mousedown',e=>{{if(e.button!==0)return;dr=true;x0=e.clientX;
 window.addEventListener('mousemove',e=>{{if(!dr)return;px=px0+(e.clientX-x0);py=py0+(e.clientY-y0);cl();ap();}});
 window.addEventListener('mouseup',()=>{{dr=false;w.style.cursor='grab';}});
 </script></body></html>"""
-    components.html(html, height=ZOOM_HEIGHT+12, scrolling=False)
+
+    # Convertimos el string HTML a una URI codificada en Base64 segura para st.iframe
+    b64_html = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
+    data_uri = f"data:text/html;base64,{b64_html}"
+    
+    # Reemplazo oficial: Usamos st.iframe en lugar del componente obsoleto
+    st.iframe(src=data_uri, height=ZOOM_HEIGHT + 12)
 
 def obtener_detecciones(modelo, img_pil, img_key):
     if "dets_cache" not in st.session_state: st.session_state.dets_cache = {}
