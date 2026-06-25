@@ -488,12 +488,15 @@ def main():
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-       # 🚀 CANVAS PROFESIONAL (Procesamiento corregido)
+# 🚀 CANVAS PROFESIONAL (Procesamiento corregido con bypass de CORS)
+        # Convertimos la imagen de display a una Data URL en Base64 segura para el Canvas
+        b64_canvas_bg = f"data:image/jpeg;base64,{pil_b64(img_display_base)}"
+
         canvas_result = st_canvas(
             fill_color="rgba(230, 57, 70, 0.15)",
             stroke_width=3,
             stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=img_display_base,
+            background_image=b64_canvas_bg,  # <--- Reemplazamos img_display_base por el string Base64
             update_streamlit=True,
             height=dh, width=dw,
             drawing_mode="rect",
