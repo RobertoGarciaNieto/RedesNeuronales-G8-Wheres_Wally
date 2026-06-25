@@ -45,7 +45,7 @@ CLASS_EMOJI = {
     "wizard": "🔵", "woof": "🟠",
 }
 MAX_DISPLAY_WIDTH = 1350
-NMS_IOU_THRESHOLD = 0.15
+NMS_IOU_THRESHOLD = 0.35
 ZOOM_HEIGHT = 650
 
 # ─────────────────────────────────────────────
@@ -412,7 +412,7 @@ def main():
                 <h3 style="color:#e63946; font-family:Bangers; font-size:1.8rem;">🎯 JUGAR CONTRA LA IA</h3>
                 <p style="color:#c9d1d9; font-family:Nunito;">Compite en tiempo real arrastrando el mouse para dibujar recuadros.</p>
                 <ul style="color:#c9d1d9; font-family:'Nunito'; font-size:.92rem; line-height:1.7; padding-left:18px; margin-bottom:0;">
-                    <li>Elegís uno de 4 pósters fijos (Fácil, Medio, Difícil o Super Difícil) de nuestro dataset de test.</li>
+                    <li>Elegís uno de 3 pósters fijos (Fácil, Medio, Difícil) de nuestro dataset de test.</li>
                     <li>Vos dibujás recuadros sobre el póster marcando dónde creés que está cada personaje.</li>
                     <li>En paralelo, la IA analiza el mismo póster con su propio modelo.</li>
                     <li>Ambos resultados se comparan contra las coordenadas <i>reales</i> del dataset (ground truth).</li>
@@ -437,7 +437,7 @@ def main():
     elif st.session_state.page == "Jugar":
         # ── Personajes a Buscar ──
         CHARS_ORDEN = ["waldo", "wilma", "odlaw", "wizard", "woof"]
-        st.markdown("<h3 style='font-family:Bangers;color:#e63946;font-size:2.3rem;text-align:center;letter-spacing:2px;margin-bottom:16px;'>🎯 PERSONAJES A BUSCAR</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-family:Bangers;color:#e63946;font-size:2.3rem;text-align:center;letter-spacing:2px;margin-bottom:16px;'>🎭 PERSONAJES A BUSCAR</h3>", unsafe_allow_html=True)
         cols_chars = st.columns(5)
         for col, nombre in zip(cols_chars, CHARS_ORDEN):
             img_path = SCRIPT_DIR / "personajesABuscar" / f"{nombre}.jpg"
@@ -454,12 +454,13 @@ def main():
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        nivel = st.selectbox("Elegí la dificultad:", ["Fácil", "Medio", "Difícil", "Super Dificil"])
+        st.markdown("<h2 style='font-family:Bangers;color:#e63946;font-size:2.3rem;'>🎯 Seleccioná el nivel y marcá los personajes</h2>", unsafe_allow_html=True)
+        nivel = st.selectbox("Elegí la dificultad:", ["Fácil", "Medio", "Difícil", "Extra"])
         archivo_nombre = {
             "Fácil": "facil.jpg",
             "Medio": "medio.jpg",
             "Difícil": "dificil.jpg",
-            "Super Dificil": "superDificil.webp",
+            "Extra": "superDificil.webp",
         }.get(nivel, "facil.jpg")
         path_poster = SCRIPT_DIR / "posters_fijos" / archivo_nombre
 
@@ -480,20 +481,33 @@ def main():
 
         img_pil = Image.open(io.BytesIO(st.session_state.imagen_bytes)).convert("RGB")
         iw, ih = img_pil.size
-        factor = iw / MAX_DISPLAY_WIDTH if iw > MAX_DISPLAY_WIDTH else 1.0
-        dw, dh = int(iw/factor), int(ih/factor)
-        img_display_base = img_pil.resize((dw, dh), Image.LANCZOS)
-        b64 = pil_b64(img_display_base)
+
+        # En Streamlit Cloud el canvas falla con imágenes grandes.
+        # Usamos un ancho reducido SOLO para el canvas (800px max).
+        MAX_CANVAS_WIDTH = 800
+        factor = iw / MAX_CANVAS_WIDTH if iw > MAX_CANVAS_WIDTH else 1.0
+        dw, dh = int(iw / factor), int(ih / factor)
+
+        # Imagen para la lupa (puede ser más grande)
+        factor_zoom = iw / MAX_DISPLAY_WIDTH if iw > MAX_DISPLAY_WIDTH else 1.0
+        dw_zoom, dh_zoom = int(iw / factor_zoom), int(ih / factor_zoom)
+        img_zoom = img_pil.resize((dw_zoom, dh_zoom), Image.LANCZOS)
+        b64 = pil_b64(img_zoom)
+
+        # Imagen para el canvas: pequeña, JPEG comprimido, objeto PIL fresco
+        buf_canvas = io.BytesIO()
+        img_pil.resize((dw, dh), Image.LANCZOS).save(buf_canvas, format="JPEG", quality=80)
+        img_canvas_bg = Image.open(io.BytesIO(buf_canvas.getvalue()))
+        img_display_base = img_canvas_bg  # alias para el código de etiquetas
 
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-       # 🚀 CANVAS PROFESIONAL (Procesamiento corregido)
         canvas_result = st_canvas(
             fill_color="rgba(230, 57, 70, 0.15)",
             stroke_width=3,
             stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=img_display_base,
+            background_image=img_canvas_bg,
             update_streamlit=True,
             height=dh, width=dw,
             drawing_mode="rect",
@@ -622,7 +636,7 @@ def main():
 
             # ── Grilla de personajes ──
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<div style='font-family:Bangers;color:#e63946;font-size:1.3rem;text-align:center;margin-bottom:12px;letter-spacing:1px;'>📋 DETALLE POR PERSONAJE</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-family:Bangers;color:#c9d1d9;font-size:1.3rem;margin-bottom:12px;letter-spacing:1px;'>📋 DETALLE POR PERSONAJE</div>", unsafe_allow_html=True)
 
             for ru, ri in zip(res_usuario, res_ia):
                 personaje = ru["personaje"]
