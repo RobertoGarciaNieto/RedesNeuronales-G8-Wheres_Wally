@@ -457,11 +457,11 @@ def main():
         st.markdown("<h2 style='font-family:Bangers;color:#e63946;font-size:2.3rem;'>🎯 Seleccioná el nivel y marcá los personajes</h2>", unsafe_allow_html=True)
         nivel = st.selectbox("Elegí la dificultad:", ["Fácil", "Medio", "Difícil", "Extra"])
         archivo_nombre = {
-            "Fácil": "facil.jpg",
+            "Fácil": "facil2.jpg",
             "Medio": "medio.jpg",
             "Difícil": "dificil.jpg",
             "Extra": "superDificil.webp",
-        }.get(nivel, "facil.jpg")
+        }.get(nivel, "facil2.jpg")
         path_poster = SCRIPT_DIR / "posters_fijos" / archivo_nombre
 
         if not path_poster.exists():
