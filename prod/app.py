@@ -45,7 +45,6 @@ CLASS_EMOJI = {
     "wizard": "🔵", "woof": "🟠",
 }
 MAX_DISPLAY_WIDTH = 1350
-CANVAS_MAX_WIDTH = 700   # Límite conservador para el canvas en Streamlit Cloud
 NMS_IOU_THRESHOLD = 0.35
 ZOOM_HEIGHT = 650
 
@@ -327,7 +326,7 @@ function fitImg() {{const cw=w.clientWidth;sc=Math.min(cw/OW,CH/OH);px=(cw-OW*sc
 function ap(){{c.style.transform=`translate(${{px}}px,${{py}}px) scale(${{sc}})`;ind.textContent=sc.toFixed(1)+'×';}}
 function cl(){{const cw=w.clientWidth,iw=OW*sc,ih=OH*sc;px=iw<=cw?(cw-iw)/2:Math.min(0,Math.max(px,cw-iw));py=ih<=CH?(CH-ih)/2:Math.min(0,Math.max(py,CH-ih));}}
 function zm(d,cx,cy){{cx=cx??w.clientWidth/2;cy=cy??CH/2;const ns=Math.min(8,Math.max(0.5,sc+d)),r=ns/sc;px=cx-r*(cx-px);py=cy-r*(cy-py);sc=ns;cl();ap();}}
-function reset(){{fitImg();}}
+function reset()){{fitImg();}}
 w.addEventListener('wheel',e=>{{e.preventDefault();const r=w.getBoundingClientRect();zm(e.deltaY<0?.25:-.25,e.clientX-r.left,e.clientY-r.top);}},{{passive:false}});
 w.addEventListener('mousedown',e=>{{if(e.button!==0)return;dr=true;x0=e.clientX;y0=e.clientY;px0=px;py0=py;w.style.cursor='grabbing';}});
 window.addEventListener('mousemove',e=>{{if(!dr)return;px=px0+(e.clientX-x0);py=py0+(e.clientY-y0);cl();ap();}});
@@ -482,56 +481,61 @@ def main():
 
         img_pil = Image.open(io.BytesIO(st.session_state.imagen_bytes)).convert("RGB")
         iw, ih = img_pil.size
-        factor = iw / MAX_DISPLAY_WIDTH if iw > MAX_DISPLAY_WIDTH else 1.0
-        dw, dh = int(iw/factor), int(ih/factor)
-        img_display_base = img_pil.resize((dw, dh), Image.LANCZOS)
-        b64 = pil_b64(img_display_base)
 
-        # Streamlit Cloud tiene límite de payload para background_image del canvas
-        # (~1-2 MB). Escalamos a CANVAS_MAX_WIDTH y usamos calidad 65 para garantizar
-        # que el base64 que viaja por el websocket no supere ese umbral.
-        # También llamamos a .copy() para forzar la carga eagerly (PIL es lazy por defecto).
-        canvas_scale = dw / CANVAS_MAX_WIDTH if dw > CANVAS_MAX_WIDTH else 1.0
-        cdw, cdh = int(dw / canvas_scale), int(dh / canvas_scale)
-        buf_canvas = io.BytesIO()
-        img_canvas_bg = img_display_base.resize((cdw, cdh), Image.LANCZOS)
-        img_canvas_bg.save(buf_canvas, format="JPEG", quality=65, optimize=True)
-        buf_canvas.seek(0)
-        img_canvas_bg = Image.open(buf_canvas).copy()  # .copy() fuerza la carga en memoria
+        # En Streamlit Cloud el canvas falla con imágenes grandes.
+        # Usamos un ancho reducido SOLO para el canvas (800px max).
+        MAX_CANVAS_WIDTH = 800
+        factor = iw / MAX_CANVAS_WIDTH if iw > MAX_CANVAS_WIDTH else 1.0
+        dw, dh = int(iw / factor), int(ih / factor)
+
+        # Imagen para la lupa (puede ser más grande)
+        factor_zoom = iw / MAX_DISPLAY_WIDTH if iw > MAX_DISPLAY_WIDTH else 1.0
+        dw_zoom, dh_zoom = int(iw / factor_zoom), int(ih / factor_zoom)
+        img_zoom = img_pil.resize((dw_zoom, dh_zoom), Image.LANCZOS)
+        b64 = pil_b64(img_zoom)
+
+        img_display_base = img_pil.resize((dw, dh), Image.LANCZOS)
 
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-       # --- 4. ZONA CENTRAL: LIENZO Y EVALUACIÓN ---
-        if uploaded_file:
-            img_pil = Image.open(uploaded_file).convert("RGB")
-            iw, ih = img_pil.size
-            
-            # Redimensionamos para que no colapse el navegador (Ancho máx 1000px)
-            factor = iw / 1000 if iw > 1000 else 1.0
-            dw, dh = int(iw / factor), int(ih / factor)
-            img_display = img_pil.resize((dw, dh), Image.LANCZOS)
-        
-            # CONVERSIÓN A BASE64 PARA STREAMLIT CLOUD
-            buffered = io.BytesIO()
-            img_display.save(buffered, format="PNG")
-            img_str = base64.b64encode(buffered.getvalue()).decode()
-            data_url = f"data:image/png;base64,{img_str}"
-        
-            st.subheader("🖍️ Lienzo de Juego")
-            
-            # Canvas configurado con la imagen en Base64
-            canvas_result = st_canvas(
-                fill_color="rgba(230, 57, 70, 0.2)",
-                stroke_width=3,
-                stroke_color=color_pincel,
-                background_image=None,  # Ponemos None porque usaremos initial_drawing
-                initial_drawing={"version": "4.4.0", "objects": [], "background": data_url},
-                height=dh,
-                width=dw,
-                drawing_mode="rect",
-                key="canvas"
-            )
+        # 🚀 CANVAS PROFESIONAL (Estructura de Fabric.js corregida para producción)
+        buf_canvas = io.BytesIO()
+        img_pil.resize((dw, dh), Image.LANCZOS).save(buf_canvas, format="JPEG", quality=82)
+        b64_canvas = base64.b64encode(buf_canvas.getvalue()).decode()
+        data_url = f"data:image/jpeg;base64,{b64_canvas}"
+
+        # Estructura JSON oficial que Fabric.js espera para renderizar una imagen de fondo legítima
+        initial_drawing = {
+            "version": "4.4.0",
+            "objects": [],
+            "backgroundImage": {
+                "type": "image",
+                "version": "4.4.0",
+                "originX": "left",
+                "originY": "top",
+                "left": 0,
+                "top": 0,
+                "width": dw,
+                "height": dh,
+                "src": data_url,
+                "scaleX": 1,
+                "scaleY": 1
+            }
+        }
+
+        canvas_result = st_canvas(
+            fill_color="rgba(230, 57, 70, 0.15)",
+            stroke_width=3,
+            stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
+            background_color="",
+            background_image=None,
+            initial_drawing=initial_drawing,
+            update_streamlit=True,
+            height=dh, width=dw,
+            drawing_mode="rect",
+            key=f"canvas_juego_{nivel}",
+        )
 
         if canvas_result.json_data is not None:
             objects = canvas_result.json_data["objects"]
@@ -557,9 +561,7 @@ def main():
                     personaje = next((k for k, v in CLASS_COLORS.items() if v.upper() == color_hex), "waldo")
                     
                     # Guardar para la evaluación
-                    # factor: imagen original → display; canvas_scale: display → canvas
-                    # Multiplicamos por ambos para volver a coordenadas originales.
-                    user_rects.append((x1 * factor * canvas_scale, y1 * factor * canvas_scale, x2 * factor * canvas_scale, y2 * factor * canvas_scale, personaje))
+                    user_rects.append((x1 * factor, y1 * factor, x2 * factor, y2 * factor, personaje))
                     
                     # Dibujar etiqueta #ID PERSONAJE
                     lbl = f"#{i} {personaje.upper()}"
