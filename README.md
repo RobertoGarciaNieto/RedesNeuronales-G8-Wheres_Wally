@@ -7,7 +7,6 @@ Este repositorio contiene el proyecto final del **Grupo 8**. El objetivo es entr
 * García Nieto, Roberto - 47576
 * Moyano, Gonzalo Damian - 47600
 * Fernandez Rossi, Matías - 49483
-* Velasco, Victoria
 
 ### Estructura del Repositorio 
 De acuerdo con las pautas presentadas, el proyecto se divide en las siguientes secciones:
@@ -16,4 +15,5 @@ De acuerdo con las pautas presentadas, el proyecto se divide en las siguientes s
 * **`prod/`**: Código fuente de producción para la interfaz web (Streamlit) e inferencia en producción.
 
 ---
-_URL de la aplicación web: (A desplegar en la cuarta semana)_
+###URL de la aplicación
+https://whereswaldo.streamlit.app
