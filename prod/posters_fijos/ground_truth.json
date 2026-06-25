@@ -1,0 +1,136 @@
+{
+    "Fácil": [
+        {
+            "personaje": "wilma",
+            "coords": [
+                347,
+                392,
+                371,
+                427
+            ]
+        },
+        {
+            "personaje": "waldo",
+            "coords": [
+                751,
+                249,
+                774,
+                283
+            ]
+        },
+        {
+            "personaje": "wizard",
+            "coords": [
+                1095,
+                194,
+                1120,
+                229
+            ]
+        }
+    ],
+    "Medio": [
+        {
+            "personaje": "waldo",
+            "coords": [
+                324,
+                619,
+                368,
+                673
+            ]
+        },
+        {
+            "personaje": "wizard",
+            "coords": [
+                380,
+                536,
+                398,
+                568
+            ]
+        },
+        {
+            "personaje": "odlaw",
+            "coords": [
+                670,
+                631,
+                693,
+                661
+            ]
+        },
+        {
+            "personaje": "wilma",
+            "coords": [
+                1132,
+                390,
+                1149,
+                415
+            ]
+        }
+    ],
+    "Difícil": [
+        {
+            "personaje": "wizard",
+            "coords": [
+                97,
+                775,
+                123,
+                816
+            ]
+        },
+        {
+            "personaje": "wilma",
+            "coords": [
+                772,
+                435,
+                793,
+                470
+            ]
+        },
+        {
+            "personaje": "odlaw",
+            "coords": [
+                495,
+                658,
+                518,
+                687
+            ]
+        },
+        {
+            "personaje": "waldo",
+            "coords": [
+                1339,
+                744,
+                1401,
+                813
+            ]
+        }
+    ],
+    "Super Dificil": [
+        {
+            "personaje": "odlaw",
+            "coords": [
+                163,
+                372,
+                178,
+                418
+            ]
+        },
+        {
+            "personaje": "waldo",
+            "coords": [
+                974,
+                390,
+                1010,
+                444
+            ]
+        },
+        {
+            "personaje": "wilma",
+            "coords": [
+                1225,
+                427,
+                1246,
+                454
+            ]
+        }
+    ]
+}

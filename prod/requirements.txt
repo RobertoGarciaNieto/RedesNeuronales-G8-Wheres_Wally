@@ -1,0 +1,7 @@
+streamlit
+streamlit-image-coordinates
+ultralytics
+opencv-python-headless
+Pillow
+streamlit-drawable-canvas-fix
+plotly
