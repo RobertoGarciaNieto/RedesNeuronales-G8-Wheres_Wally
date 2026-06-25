@@ -323,10 +323,10 @@ let sc=1,px=0,py=0,dr=false,x0=0,y0=0,px0=0,py0=0;
 const im=new Image(); im.src='data:image/jpeg;base64,{img_b64}';
 im.onload=()=>{{c.width=OW;c.height=OH;ctx.drawImage(im,0,0,OW,OH);fitImg();}};
 function fitImg() {{const cw=w.clientWidth;sc=Math.min(cw/OW,CH/OH);px=(cw-OW*sc)/2;py=(CH-OH*sc)/2;ap();}}
-function ap(){{c.style.transform=`translate(${{px}}px,${{py}}px) scale(${{sc}})`;ind.textContent=sc.toFixed(1)+'×';}}
-function cl(){{const cw=w.clientWidth,iw=OW*sc,ih=OH*sc;px=iw<=cw?(cw-iw)/2:Math.min(0,Math.max(px,cw-iw));py=ih<=CH?(CH-ih)/2:Math.min(0,Math.max(py,CH-ih));}}
+function ap() {{c.style.transform=`translate(${{px}}px,${{py}}px) scale(${{sc}})`;ind.textContent=sc.toFixed(1)+'×';}}
+function cl() {{const cw=w.clientWidth,iw=OW*sc,ih=OH*sc;px=iw<=cw?(cw-iw)/2:Math.min(0,Math.max(px,cw-iw));py=ih<=CH?(CH-ih)/2:Math.min(0,Math.max(py,CH-ih));}}
 function zm(d,cx,cy){{cx=cx??w.clientWidth/2;cy=cy??CH/2;const ns=Math.min(8,Math.max(0.5,sc+d)),r=ns/sc;px=cx-r*(cx-px);py=cy-r*(cy-py);sc=ns;cl();ap();}}
-function reset()){{fitImg();}}
+function reset(){{fitImg();}}
 w.addEventListener('wheel',e=>{{e.preventDefault();const r=w.getBoundingClientRect();zm(e.deltaY<0?.25:-.25,e.clientX-r.left,e.clientY-r.top);}},{{passive:false}});
 w.addEventListener('mousedown',e=>{{if(e.button!==0)return;dr=true;x0=e.clientX;y0=e.clientY;px0=px;py0=py;w.style.cursor='grabbing';}});
 window.addEventListener('mousemove',e=>{{if(!dr)return;px=px0+(e.clientX-x0);py=py0+(e.clientY-y0);cl();ap();}});
@@ -496,8 +496,9 @@ def main():
 
         img_display_base = img_pil.resize((dw, dh), Image.LANCZOS)
 
+        # FIX: Pasamos explícitamente dw_zoom y dh_zoom para que el script calcule bien los arrastres de alta definición
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
-            render_zoom_viewer(b64, dw, dh)
+            render_zoom_viewer(b64, dw_zoom, dh_zoom)
 
         # 🚀 CANVAS PROFESIONAL (Estructura de Fabric.js corregida para producción)
         buf_canvas = io.BytesIO()
