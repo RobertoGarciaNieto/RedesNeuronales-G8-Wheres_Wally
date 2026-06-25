@@ -45,7 +45,7 @@ CLASS_EMOJI = {
     "wizard": "🔵", "woof": "🟠",
 }
 MAX_DISPLAY_WIDTH = 1350
-NMS_IOU_THRESHOLD = 0.15
+NMS_IOU_THRESHOLD = 0.35
 ZOOM_HEIGHT = 650
 
 # ─────────────────────────────────────────────
@@ -412,7 +412,7 @@ def main():
                 <h3 style="color:#e63946; font-family:Bangers; font-size:1.8rem;">🎯 JUGAR CONTRA LA IA</h3>
                 <p style="color:#c9d1d9; font-family:Nunito;">Compite en tiempo real arrastrando el mouse para dibujar recuadros.</p>
                 <ul style="color:#c9d1d9; font-family:'Nunito'; font-size:.92rem; line-height:1.7; padding-left:18px; margin-bottom:0;">
-                    <li>Elegís uno de 4 pósters fijos (Fácil, Medio, Difícil o Super Difícil) de nuestro dataset de test.</li>
+                    <li>Elegís uno de 3 pósters fijos (Fácil, Medio, Difícil) de nuestro dataset de test.</li>
                     <li>Vos dibujás recuadros sobre el póster marcando dónde creés que está cada personaje.</li>
                     <li>En paralelo, la IA analiza el mismo póster con su propio modelo.</li>
                     <li>Ambos resultados se comparan contra las coordenadas <i>reales</i> del dataset (ground truth).</li>
@@ -437,7 +437,7 @@ def main():
     elif st.session_state.page == "Jugar":
         # ── Personajes a Buscar ──
         CHARS_ORDEN = ["waldo", "wilma", "odlaw", "wizard", "woof"]
-        st.markdown("<h3 style='font-family:Bangers;color:#e63946;font-size:2.3rem;text-align:center;letter-spacing:2px;margin-bottom:16px;'>🎯 PERSONAJES A BUSCAR</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-family:Bangers;color:#e63946;font-size:2.3rem;text-align:center;letter-spacing:2px;margin-bottom:16px;'>🎭 PERSONAJES A BUSCAR</h3>", unsafe_allow_html=True)
         cols_chars = st.columns(5)
         for col, nombre in zip(cols_chars, CHARS_ORDEN):
             img_path = SCRIPT_DIR / "personajesABuscar" / f"{nombre}.jpg"
@@ -454,12 +454,13 @@ def main():
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        nivel = st.selectbox("Elegí la dificultad:", ["Fácil", "Medio", "Difícil", "Super Dificil"])
+        st.markdown("<h2 style='font-family:Bangers;color:#e63946;font-size:2.3rem;'>🎯 Seleccioná el nivel y marcá los personajes</h2>", unsafe_allow_html=True)
+        nivel = st.selectbox("Elegí la dificultad:", ["Fácil", "Medio", "Difícil", "Extra"])
         archivo_nombre = {
             "Fácil": "facil.jpg",
             "Medio": "medio.jpg",
             "Difícil": "dificil.jpg",
-            "Super Dificil": "superDificil.webp",
+            "Extra": "superDificil.webp",
         }.get(nivel, "facil.jpg")
         path_poster = SCRIPT_DIR / "posters_fijos" / archivo_nombre
 
@@ -485,38 +486,22 @@ def main():
         img_display_base = img_pil.resize((dw, dh), Image.LANCZOS)
         b64 = pil_b64(img_display_base)
 
+        # Streamlit Cloud tiene límite de payload para background_image del canvas.
+        # Comprimimos la imagen a JPEG 85% para reducir el tamaño sin pérdida visible.
+        buf_canvas = io.BytesIO()
+        img_display_base.save(buf_canvas, format="JPEG", quality=85, optimize=True)
+        buf_canvas.seek(0)
+        img_canvas_bg = Image.open(buf_canvas)
+
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-# 🚀 CANVAS PROFESIONAL (Solución por Capas - Bypass Absoluto de CORS)
-        # 1. Convertimos la imagen base a Base64
-        b64_canvas = pil_b64(img_display_base)
-        data_url_bg = f"data:image/jpeg;base64,{b64_canvas}"
-
-        # 2. Inyectamos un contenedor CSS que ponga la imagen de fondo JUSTO detrás del canvas estático.
-        # De esta manera, el canvas queda transparente arriba para que arrastres el mouse sin romper nada.
-        st.markdown(
-            f"""
-            <style>
-            /* Buscamos el contenedor exacto del canvas de este nivel y le inyectamos el fondo */
-            div[data-testid="stCustomComponentV1"] iframe {{
-                background-image: url('{data_url_bg}') !important;
-                background-size: contain !important;
-                background-repeat: no-repeat !important;
-                background-position: center !important;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
-        # 3. Inicializamos el Canvas pasándole `None` en la imagen de fondo.
-        # Como no hay objeto imagen, la librería salta sus validaciones conflictivas y no tira errores.
+       # 🚀 CANVAS PROFESIONAL (Procesamiento corregido)
         canvas_result = st_canvas(
             fill_color="rgba(230, 57, 70, 0.15)",
             stroke_width=3,
             stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=None,  # <--- Dejamos el canvas transparente limpio
+            background_image=img_canvas_bg,
             update_streamlit=True,
             height=dh, width=dw,
             drawing_mode="rect",
@@ -645,7 +630,7 @@ def main():
 
             # ── Grilla de personajes ──
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<div style='font-family:Bangers;color:#e63946;font-size:1.3rem;text-align:center;margin-bottom:12px;letter-spacing:1px;'>📋 DETALLE POR PERSONAJE</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-family:Bangers;color:#c9d1d9;font-size:1.3rem;margin-bottom:12px;letter-spacing:1px;'>📋 DETALLE POR PERSONAJE</div>", unsafe_allow_html=True)
 
             for ru, ri in zip(res_usuario, res_ia):
                 personaje = ru["personaje"]
