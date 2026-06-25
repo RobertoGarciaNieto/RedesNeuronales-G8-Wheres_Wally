@@ -488,17 +488,29 @@ def main():
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-# 🚀 CANVAS PROFESIONAL (Bypass definitivo de CORS usando memoria de bytes)
-        # Convertimos los bytes guardados en el estado a un nuevo input stream de datos
-        # Esto simula un archivo estático local en memoria, evitando que Streamlit falle al serializarlo.
-        from io import BytesIO
-        img_canvas_bg = Image.open(BytesIO(st.session_state.imagen_bytes)).convert("RGB").resize((dw, dh), Image.LANCZOS)
+# 🚀 CANVAS PROFESIONAL (Bypass definitivo de CORS para Producción)
+        # 1. Convertimos la imagen reescalada a Base64 crudo
+        b64_canvas = pil_b64(img_display_base)
+        data_url_bg = f"data:image/jpeg;base64,{b64_canvas}"
 
+        # 2. Creamos un objeto "simulado" que engañe a la librería en Python
+        # pero que devuelva el string Data URL al frontend en JavaScript.
+        class SafeCanvasBackground:
+            def __init__(self, url, w, h):
+                self.url = url
+                self.width = w
+                self.height = h
+            def __str__(self):
+                return self.url
+
+        bg_seguro = SafeCanvasBackground(data_url_bg, dw, dh)
+
+        # 3. Inicializamos el Canvas con nuestro objeto seguro
         canvas_result = st_canvas(
             fill_color="rgba(230, 57, 70, 0.15)",
             stroke_width=3,
             stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=img_canvas_bg,  # <--- Le pasamos el objeto PIL reescalado fresco en memoria
+            background_image=bg_seguro,  # <--- Inyectamos el proxy Base64 con dimensiones
             update_streamlit=True,
             height=dh, width=dw,
             drawing_mode="rect",
