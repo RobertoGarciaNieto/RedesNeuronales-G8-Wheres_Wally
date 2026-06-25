@@ -488,15 +488,17 @@ def main():
         with st.expander("🔍 Lupa de Zoom (Solo Exploración de Lectura)", expanded=False):
             render_zoom_viewer(b64, dw, dh)
 
-# 🚀 CANVAS PROFESIONAL (Procesamiento corregido con bypass de CORS)
-        # Convertimos la imagen de display a una Data URL en Base64 segura para el Canvas
-        b64_canvas_bg = f"data:image/jpeg;base64,{pil_b64(img_display_base)}"
+# 🚀 CANVAS PROFESIONAL (Bypass definitivo de CORS usando memoria de bytes)
+        # Convertimos los bytes guardados en el estado a un nuevo input stream de datos
+        # Esto simula un archivo estático local en memoria, evitando que Streamlit falle al serializarlo.
+        from io import BytesIO
+        img_canvas_bg = Image.open(BytesIO(st.session_state.imagen_bytes)).convert("RGB").resize((dw, dh), Image.LANCZOS)
 
         canvas_result = st_canvas(
             fill_color="rgba(230, 57, 70, 0.15)",
             stroke_width=3,
             stroke_color=CLASS_COLORS[st.session_state.personaje_sel],
-            background_image=b64_canvas_bg,  # <--- Reemplazamos img_display_base por el string Base64
+            background_image=img_canvas_bg,  # <--- Le pasamos el objeto PIL reescalado fresco en memoria
             update_streamlit=True,
             height=dh, width=dw,
             drawing_mode="rect",
